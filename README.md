@@ -7,6 +7,7 @@
 ![pytest](https://img.shields.io/badge/pytest-7.4-cyan)
 ![Allure](https://img.shields.io/badge/Allure-2.13-purple)
 ![Django](https://img.shields.io/badge/Django-4.2-darkgreen)
+![Tests](https://img.shields.io/badge/tests-42-brightgreen)
 
 ---
 
@@ -18,6 +19,9 @@
 - API-тестирование (requests)
 - Тестирование базы данных (sqlite3)
 - Генерация отчётов (Allure)
+- Негативное тестирование
+- Тестирование производительности
+- Мобильное тестирование
 
 ## 🎯 Целевой проект
 
@@ -47,16 +51,22 @@
 qa_pivnica/
 ├── tests/
 │   ├── __init__.py
-│   ├── conftest.py              # Фикстуры (драйвер, API, БД)
-│   ├── test_homepage.py         # Тесты главной страницы (5 тестов)
-│   ├── test_menu.py             # Тесты меню (5 тестов)
+│   ├── conftest.py                  # Фикстуры + логирование + скриншоты
+│   ├── test_homepage.py             # Тесты главной страницы (5 тестов)
+│   ├── test_menu.py                 # Тесты меню (5 тестов + параметризация)
 │   ├── test_events_and_reservation.py  # Тесты афиши и бронирования (5 тестов)
-│   ├── test_api.py              # API-тесты (4 теста)
-│   └── test_database.py         # БД-тесты (6 тестов)
+│   ├── test_api.py                  # API-тесты (4 теста)
+│   ├── test_database.py             # БД-тесты (6 тестов)
+│   ├── test_negative.py             # Негативные тесты (7 тестов)
+│   ├── test_paper_menu.py           # Тесты бумажного меню (3 теста)
+│   ├── test_performance.py          # Тесты производительности (3 теста)
+│   └── test_mobile.py               # Тесты мобильной версии (4 теста)
 ├── drivers/
-│   └── chromedriver.exe         # ChromeDriver (устанавливается вручную)
-├── allure-results/              # Результаты для Allure
-├── screenshots/                 # Скриншоты для README
+│   └── chromedriver.exe             # ChromeDriver (устанавливается вручную)
+├── logs/                            # Логи тестов (создаётся автоматически)
+├── screenshots_fail/                # Скриншоты при падении (создаётся автоматически)
+├── allure-results/                  # Результаты для Allure
+├── screenshots/                     # Скриншоты для README
 │   ├── allure_report_success.png
 │   └── allure_suites.png
 ├── requirements.txt
@@ -73,20 +83,24 @@ qa_pivnica/
 
 | Категория | Количество тестов |
 |-----------|-------------------|
-| UI-тесты (Selenium) | 15 |
+| UI-тесты (Selenium) | 32 |
 | API-тесты (requests) | 4 |
 | БД-тесты (sqlite3) | 6 |
-| **Всего** | **25** |
+| **Всего** | **42** |
 
 ---
 
 ### UI-тесты (Selenium)
 
-| Файл | Страница | Что проверяется |
-|------|----------|-----------------|
-| `test_homepage.py` | Главная | Загрузка, кнопки, навигация, мероприятия |
-| `test_menu.py` | Меню | Категории, блюда, цены, фильтрация |
-| `test_events_and_reservation.py` | Афиша и бронирование | Карточки, форма, поля, отправка |
+| Файл | Страница | Что проверяется | Кол-во |
+|------|----------|-----------------|--------|
+| `test_homepage.py` | Главная | Загрузка, кнопки, навигация, мероприятия | 5 |
+| `test_menu.py` | Меню | Категории, блюда, цены, фильтрация | 5 + параметризация |
+| `test_events_and_reservation.py` | Афиша и бронирование | Карточки, форма, поля, отправка | 5 |
+| `test_negative.py` | Бронирование | Пустая форма, невалидные данные | 7 |
+| `test_paper_menu.py` | Бумажное меню | Загрузка, изображения | 3 |
+| `test_performance.py` | Все страницы | Время загрузки | 3 |
+| `test_mobile.py` | Все страницы | Мобильная версия, бургер-меню | 4 |
 
 ---
 
@@ -168,22 +182,26 @@ allure serve allure-results
 ```bash
 $ pytest -v
 
-collected 25 items
+collected 42 items
 
-tests/test_api.py ....                                               [ 16%]
-tests/test_database.py ......                                        [ 40%]
-tests/test_events_and_reservation.py .....                           [ 60%]
-tests/test_homepage.py .....                                         [ 80%]
-tests/test_menu.py .....                                             [100%]
+tests/test_api.py ....                                               [  9%]
+tests/test_database.py ......                                        [ 23%]
+tests/test_events_and_reservation.py .....                           [ 35%]
+tests/test_homepage.py .....                                         [ 47%]
+tests/test_menu.py ......                                            [ 61%]
+tests/test_mobile.py ....                                            [ 71%]
+tests/test_negative.py .......                                       [ 88%]
+tests/test_paper_menu.py ...                                         [ 95%]
+tests/test_performance.py ...                                        [100%]
 
-=============================== 25 passed in 120.0s ================================
+=============================== 42 passed in 180.0s ===============================
 ```
 
 ## 📸 Пример отчёта Allure
 
 ### Общая статистика
 
-![Успешный прогон всех 25 тестов](screenshots/allure_report_success.png)
+![Успешный прогон всех тестов](screenshots/allure_report_success.png)
 
 ### Структура тестов (Suites)
 
@@ -198,14 +216,24 @@ tests/test_menu.py .....                                             [100%]
 | Фикстура | Назначение |
 |----------|------------|
 | `driver` | Создаёт и закрывает браузер для каждого теста |
+| `mobile_driver` | Создаёт браузер в режиме эмуляции мобильного устройства |
 | `api_base_url` | Базовый URL для API-тестов |
 | `db_connection` | Подключение к SQLite для проверки данных |
+
+### Логирование и отладка
+
+| Функция | Описание |
+|---------|----------|
+| `setup_logging()` | Настройка логов в файл и консоль |
+| Скриншоты при падении | Автоматическое сохранение скриншота при ошибке |
+| Логи в файл | Все логи сохраняются в `logs/test_log_YYYYMMDD.log` |
 
 ### Обработка ошибок
 
 - Клик через JavaScript (обходит перекрытия элементов)
 - Fallback-селекторы для поиска элементов
 - Ожидание загрузки страниц (WebDriverWait)
+- Скриншоты при падении для отладки
 
 ### Режим headless
 
@@ -220,10 +248,15 @@ tests/test_menu.py .....                                             [100%]
 
 ## 📌 Планы по развитию
 
-- [ ] Добавить тесты для бумажного меню
+- [x] Добавить тесты для бумажного меню
+- [x] Добавить негативные тесты
+- [x] Добавить параметризацию тестов
+- [x] Добавить тесты мобильной версии
+- [x] Добавить тесты производительности
+- [x] Добавить скриншоты при падении
+- [x] Добавить логирование в файл
 - [ ] Настроить параллельный запуск тестов (pytest-xdist)
 - [ ] Интегрировать с Allure TestOps
-- [ ] Добавить тесты на мобильную версию
 - [ ] Расширить покрытие API-тестов
 
 ---
@@ -235,6 +268,7 @@ tests/test_menu.py .....                                             [100%]
 | `ElementNotInteractableException` | Использован клик через `execute_script` |
 | `NoSuchElementException` | Добавлены fallback-селекторы |
 | База данных не найдена | Выполните миграции в `pivnica_portal` |
+| IncompleteRead при запуске | Обновите ChromeDriver до актуальной версии |
 
 ---
 
