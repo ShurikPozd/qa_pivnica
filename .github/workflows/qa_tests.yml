@@ -19,10 +19,20 @@ jobs:
       with:
         python-version: '3.11'
 
-    - name: Install dependencies
+    - name: Install dependencies for QA
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
+
+    - name: Clone and setup the website
+      run: |
+        cd ..
+        git clone https://github.com/ShurikPozd/pivnica_portal.git
+        cd pivnica_portal
+        pip install -r requirements.txt
+        python manage.py migrate
+        python manage.py runserver 8000 &
+        sleep 5  # Ждём, пока сервер запустится
 
     - name: Install ChromeDriver
       run: |
@@ -31,6 +41,7 @@ jobs:
 
     - name: Run tests
       run: |
+        cd ../qa_pivnica
         pytest -v --alluredir=allure-results
 
     - name: Upload Allure results
