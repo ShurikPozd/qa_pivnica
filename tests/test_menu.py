@@ -45,3 +45,23 @@ class TestMenu:
         dishes = driver.find_elements(By.CSS_SELECTOR, ".card")
         assert len(dishes) >= 0
         print(f"✅ Фильтрация по категории '{category_name}' работает")
+    
+    @pytest.mark.parametrize("category_index", [0, 1, 2])
+    def test_each_category_has_dishes(self, driver, category_index):
+        """Проверяет, что каждая категория содержит блюда."""
+        driver.get("http://127.0.0.1:8000/menu/")
+        
+        categories = driver.find_elements(By.CSS_SELECTOR, ".nav-tabs .nav-link")
+        assert category_index < len(categories), f"Категории {category_index} не существует"
+        
+        category = categories[category_index]
+        category_name = category.text.strip()
+        driver.execute_script("arguments[0].click();", category)
+        
+        WebDriverWait(driver, 5).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, ".card"))
+        )
+        
+        dishes = driver.find_elements(By.CSS_SELECTOR, ".card")
+        assert len(dishes) > 0, f"В категории '{category_name}' нет блюд"
+        print(f"✅ В категории '{category_name}' найдено {len(dishes)} блюд")
