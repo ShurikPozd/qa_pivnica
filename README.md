@@ -17,7 +17,6 @@
 - UI-тестирование (Selenium WebDriver)
 - API-тестирование (requests)
 - Тестирование базы данных (sqlite3)
-- Настройка CI/CD (GitHub Actions)
 - Генерация отчётов (Allure)
 
 ## 🎯 Целевой проект
@@ -39,7 +38,6 @@
 | **requests** | Тестирование REST API |
 | **sqlite3** | Проверка данных в базе |
 | **Allure** | Красивые отчёты о тестировании |
-| **GitHub Actions** | Автоматический запуск тестов при пуше |
 
 ---
 
@@ -58,6 +56,9 @@ qa_pivnica/
 ├── drivers/
 │   └── chromedriver.exe         # ChromeDriver (устанавливается вручную)
 ├── allure-results/              # Результаты для Allure
+├── screenshots/                 # Скриншоты для README
+│   ├── allure_report_success.png
+│   └── allure_suites.png
 ├── requirements.txt
 ├── pytest.ini
 ├── .gitignore
@@ -169,7 +170,7 @@ $ pytest -v
 
 collected 25 items
 
-tests/test_api.py ....                                              [ 16%]
+tests/test_api.py ....                                               [ 16%]
 tests/test_database.py ......                                        [ 40%]
 tests/test_events_and_reservation.py .....                           [ 60%]
 tests/test_homepage.py .....                                         [ 80%]
@@ -214,13 +215,6 @@ tests/test_menu.py .....                                             [100%]
 ```python
 # options.add_argument("--headless")
 ```
-
----
-
-## 🔄 CI/CD (GitHub Actions)
-
-Тесты автоматически запускаются при каждом пуше в ветку `main`.  
-Код для CI лежит в `.github/workflows/qa_tests.yml`.
 
 ---
 
