@@ -4,3 +4,6 @@ webdriver-manager==4.0.1
 requests==2.31.0
 allure-pytest==2.13.2
 pytest-xdist==3.5.0
+faker==20.1.0
+pytest-repeat==0.9.3
+pytest-rerunfailures==12.0

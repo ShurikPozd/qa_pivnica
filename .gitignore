@@ -1,38 +1,44 @@
 # Python
 __pycache__/
-*.py[cod]
-*$py.class
-*.so
+*.pyc
+*.pyo
+*.pyd
 .Python
-.venv/
-venv/
-ENV/
-env/
+*.so
+*.egg
+*.egg-info/
 dist/
 build/
-*.egg-info/
-*.egg
+*.log
 
-# VS Code
+# Виртуальное окружение
+venv/
+env/
+.venv/
+ENV/
+
+# IDE
 .vscode/
-*.code-workspace
+.idea/
+*.swp
+*.swo
+.DS_Store
+*.iml
 
-# Allure
-allure-results/
-allure-report/
-
-# Pytest
+# Тесты
 .pytest_cache/
 .coverage
 htmlcov/
+allure-results/
+allure-report/
+logs/
+screenshots_fail/
 
-# IDE
-.idea/
-*.iml
-
-# Logs
-*.log
+# Данные
+ml/data/
+*.pkl
+*.joblib
 
 # OS
-.DS_Store
 Thumbs.db
+.DS_Store

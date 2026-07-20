@@ -1,19 +1,19 @@
 import pytest
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
 import requests
 import sqlite3
 import os
 from datetime import datetime
 import logging
+import allure
+from faker import Faker
 
 # ============================================================
 # 1. НАСТРОЙКА ЛОГИРОВАНИЯ
 # ============================================================
 
 def setup_logging():
-    """Настраивает логирование для тестов."""
     log_dir = "logs"
     os.makedirs(log_dir, exist_ok=True)
     
@@ -29,23 +29,27 @@ def setup_logging():
     )
     return logging.getLogger(__name__)
 
-# Инициализируем логгер при загрузке модуля
 logger = setup_logging()
 logger.info("=" * 60)
 logger.info("🚀 ЗАПУСК ТЕСТОВ")
 logger.info("=" * 60)
 
+# ============================================================
+# 2. FAKER
+# ============================================================
+
+@pytest.fixture(scope="session")
+def fake():
+    """Фикстура для генерации тестовых данных."""
+    return Faker('ru_RU')
 
 # ============================================================
-# 2. ФИКСТУРЫ
+# 3. ФИКСТУРА ДЛЯ БРАУЗЕРА
 # ============================================================
 
 @pytest.fixture(scope="function")
 def driver(request):
-    """
-    Создаёт и закрывает браузер для каждого теста.
-    При падении теста делает скриншот.
-    """
+    """Создаёт и закрывает браузер для каждого теста."""
     logger.info(f"🔧 Запуск теста: {request.node.name}")
     
     options = webdriver.ChromeOptions()
@@ -55,45 +59,80 @@ def driver(request):
     options.add_argument("--disable-gpu")
     options.add_argument("--window-size=1920,1080")
     
+    chrome_driver_path = os.path.join(os.path.dirname(__file__), "..", "drivers", "chromedriver.exe")
+    
+    if not os.path.exists(chrome_driver_path):
+        logger.warning(f"⚠️ ChromeDriver не найден по пути: {chrome_driver_path}")
+        logger.info("🔄 Пробуем использовать webdriver-manager...")
+        try:
+            from webdriver_manager.chrome import ChromeDriverManager
+            service = Service(ChromeDriverManager().install())
+        except Exception as e:
+            logger.error(f"❌ Не удалось установить ChromeDriver: {e}")
+            pytest.skip("ChromeDriver не установлен")
+    else:
+        logger.info(f"✅ Используем ChromeDriver: {chrome_driver_path}")
+        service = Service(chrome_driver_path)
+    
+    driver = None
     try:
-        service = Service(ChromeDriverManager().install())
         driver = webdriver.Chrome(service=service, options=options)
         driver.implicitly_wait(5)
         driver.maximize_window()
         
         logger.info(f"✅ Браузер запущен для теста: {request.node.name}")
-        
         yield driver
         
     except Exception as e:
         logger.error(f"❌ Ошибка при запуске браузера: {e}")
+        if driver:
+            screenshot_dir = "screenshots_fail"
+            os.makedirs(screenshot_dir, exist_ok=True)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            screenshot_path = os.path.join(screenshot_dir, f"fail_setup_{timestamp}_{request.node.name}.png")
+            try:
+                driver.save_screenshot(screenshot_path)
+                logger.info(f"📸 Скриншот сохранён: {screenshot_path}")
+            except:
+                pass
         raise
     
     finally:
-        # Если тест упал — делаем скриншот
-        if hasattr(request, 'node') and hasattr(request.node, 'rep_call'):
-            if request.node.rep_call.failed:
-                screenshot_dir = "screenshots_fail"
-                os.makedirs(screenshot_dir, exist_ok=True)
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                screenshot_path = os.path.join(screenshot_dir, f"fail_{timestamp}_{request.node.name}.png")
-                try:
-                    driver.save_screenshot(screenshot_path)
-                    logger.info(f"📸 Скриншот сохранён: {screenshot_path}")
-                except Exception as e:
-                    logger.error(f"❌ Не удалось сохранить скриншот: {e}")
-        
-        driver.quit()
-        logger.info(f"🔚 Браузер закрыт для теста: {request.node.name}")
+        if driver:
+            if hasattr(request, 'node') and hasattr(request.node, 'rep_call'):
+                if request.node.rep_call.failed:
+                    screenshot_dir = "screenshots_fail"
+                    os.makedirs(screenshot_dir, exist_ok=True)
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    screenshot_path = os.path.join(screenshot_dir, f"fail_{timestamp}_{request.node.name}.png")
+                    try:
+                        driver.save_screenshot(screenshot_path)
+                        logger.info(f"📸 Скриншот сохранён: {screenshot_path}")
+                        allure.attach.file(
+                            screenshot_path,
+                            name=f"Скриншот при падении: {request.node.name}",
+                            attachment_type=allure.attachment_type.PNG
+                        )
+                    except Exception as e:
+                        logger.error(f"❌ Не удалось сохранить скриншот: {e}")
+            
+            driver.quit()
+            logger.info(f"🔚 Браузер закрыт для теста: {request.node.name}")
 
+# ============================================================
+# 4. ПАРАМЕТРИЗАЦИЯ РАЗРЕШЕНИЙ ЭКРАНА
+# ============================================================
 
-@pytest.fixture(scope="function")
-def mobile_driver(request):
-    """
-    Создаёт браузер в режиме эмуляции мобильного устройства (iPhone 12).
-    При падении теста делает скриншот.
-    """
-    logger.info(f"📱 Запуск мобильного теста: {request.node.name}")
+@pytest.fixture(params=[
+    (1920, 1080, "desktop"),
+    (1366, 768, "laptop"),
+    (375, 812, "iphone_x"),
+    (768, 1024, "tablet"),
+])
+def driver_with_resolution(request):
+    """Фикстура с разными разрешениями экрана."""
+    width, height, device = request.param
+    logger.info(f"📱 Тест на устройстве: {device} ({width}x{height})")
     
     options = webdriver.ChromeOptions()
     options.add_argument("--headless")
@@ -101,43 +140,28 @@ def mobile_driver(request):
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
     
-    # Эмуляция iPhone 12
-    mobile_emulation = {
-        "deviceMetrics": {"width": 390, "height": 844, "pixelRatio": 3.0},
-        "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1"
-    }
-    options.add_experimental_option("mobileEmulation", mobile_emulation)
+    chrome_driver_path = os.path.join(os.path.dirname(__file__), "..", "drivers", "chromedriver.exe")
+    
+    if not os.path.exists(chrome_driver_path):
+        from webdriver_manager.chrome import ChromeDriverManager
+        service = Service(ChromeDriverManager().install())
+    else:
+        service = Service(chrome_driver_path)
     
     try:
-        service = Service(ChromeDriverManager().install())
         driver = webdriver.Chrome(service=service, options=options)
+        driver.set_window_size(width, height)
         driver.implicitly_wait(5)
         
-        logger.info(f"✅ Мобильный браузер запущен для теста: {request.node.name}")
+        yield driver, device
         
-        yield driver
-        
-    except Exception as e:
-        logger.error(f"❌ Ошибка при запуске мобильного браузера: {e}")
-        raise
-    
     finally:
-        # Если тест упал — делаем скриншот
-        if hasattr(request, 'node') and hasattr(request.node, 'rep_call'):
-            if request.node.rep_call.failed:
-                screenshot_dir = "screenshots_fail"
-                os.makedirs(screenshot_dir, exist_ok=True)
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                screenshot_path = os.path.join(screenshot_dir, f"mobile_fail_{timestamp}_{request.node.name}.png")
-                try:
-                    driver.save_screenshot(screenshot_path)
-                    logger.info(f"📸 Мобильный скриншот сохранён: {screenshot_path}")
-                except Exception as e:
-                    logger.error(f"❌ Не удалось сохранить мобильный скриншот: {e}")
-        
         driver.quit()
-        logger.info(f"🔚 Мобильный браузер закрыт для теста: {request.node.name}")
+        logger.info(f"🔚 Браузер закрыт для устройства: {device}")
 
+# ============================================================
+# 5. ОСТАЛЬНЫЕ ФИКСТУРЫ
+# ============================================================
 
 @pytest.fixture(scope="session")
 def api_base_url():
@@ -152,17 +176,15 @@ def db_connection():
     """Создаёт подключение к БД."""
     logger.info("🗄️ Подключение к базе данных")
     
-    # Путь к БД сайта
     db_path = os.path.join(os.path.dirname(__file__), "..", "..", "pivnica_portal", "db.sqlite3")
     
-    # Если не найдена — пробуем другие варианты
     if not os.path.exists(db_path):
         db_path = os.path.join(os.path.dirname(__file__), "..", "db.sqlite3")
         logger.debug(f"🔍 Пробуем путь: {db_path}")
     
     if not os.path.exists(db_path):
         logger.warning("⚠️ База данных не найдена. Пропускаем БД-тесты.")
-        pytest.skip("База данных не найдена. Выполните миграции в pivnica_portal.")
+        pytest.skip("База данных не найдена")
     
     try:
         conn = sqlite3.connect(db_path)
@@ -175,19 +197,17 @@ def db_connection():
         logger.error(f"❌ Ошибка подключения к БД: {e}")
         raise
 
-
 # ============================================================
-# 3. ХУК ДЛЯ PYTEST (сохранение результата теста)
+# 6. ХУК ДЛЯ PYTEST
 # ============================================================
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item, call):
-    """Сохраняет результат выполнения теста в item для использования в фикстурах."""
+    """Сохраняет результат выполнения теста."""
     outcome = yield
     rep = outcome.get_result()
     setattr(item, "rep_" + rep.when, rep)
     
-    # Логируем результат теста
     if rep.when == "call":
         if rep.failed:
             logger.error(f"❌ Тест УПАЛ: {item.name}")

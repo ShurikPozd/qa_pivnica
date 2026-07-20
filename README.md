@@ -7,13 +7,14 @@
 ![pytest](https://img.shields.io/badge/pytest-7.4-cyan)
 ![Allure](https://img.shields.io/badge/Allure-2.13-purple)
 ![Django](https://img.shields.io/badge/Django-4.2-darkgreen)
-![Tests](https://img.shields.io/badge/tests-42-brightgreen)
+![Tests](https://img.shields.io/badge/tests-53-brightgreen)
+![Parallel](https://img.shields.io/badge/parallel-4x-orange)
 
 ---
 
 ## 📋 О проекте
 
-Проект содержит **автоматизированные тесты** для проверки веб-сайта бар-ресторана «Пивница». Он был создан в рамках изучения QA-автоматизации и демонстрирует навыки:
+Проект содержит **53 автоматизированных теста** для проверки веб-сайта бар-ресторана «Пивница». Он был создан в рамках изучения QA-автоматизации и демонстрирует навыки:
 
 - UI-тестирование (Selenium WebDriver)
 - API-тестирование (requests)
@@ -22,6 +23,9 @@
 - Негативное тестирование
 - Тестирование производительности
 - Мобильное тестирование
+- Адаптивное тестирование (4 разрешения экрана)
+- Параллельный запуск тестов (pytest-xdist)
+- Генерация реалистичных тестовых данных (Faker)
 
 ## 🎯 Целевой проект
 
@@ -38,10 +42,13 @@
 | Технология | Назначение |
 |------------|------------|
 | **pytest** | Фреймворк для запуска тестов |
+| **pytest-xdist** | Параллельный запуск тестов (4 потока) |
+| **pytest-rerunfailures** | Перезапуск упавших тестов |
 | **Selenium WebDriver** | UI-автоматизация в браузере |
 | **requests** | Тестирование REST API |
 | **sqlite3** | Проверка данных в базе |
 | **Allure** | Красивые отчёты о тестировании |
+| **Faker** | Генерация реалистичных тестовых данных |
 
 ---
 
@@ -49,24 +56,26 @@
 
 ```
 qa_pivnica/
+├── drivers/
+│   └── chromedriver.exe         # ChromeDriver (устанавливается вручную)
 ├── tests/
 │   ├── __init__.py
-│   ├── conftest.py                  # Фикстуры + логирование + скриншоты
-│   ├── test_homepage.py             # Тесты главной страницы (5 тестов)
-│   ├── test_menu.py                 # Тесты меню (5 тестов + параметризация)
+│   ├── conftest.py              # Фикстуры + Faker + логирование
+│   ├── test_api.py              # API-тесты (4 теста)
+│   ├── test_database.py         # БД-тесты (6 тестов)
 │   ├── test_events_and_reservation.py  # Тесты афиши и бронирования (5 тестов)
-│   ├── test_api.py                  # API-тесты (4 теста)
-│   ├── test_database.py             # БД-тесты (6 тестов)
-│   ├── test_negative.py             # Негативные тесты (7 тестов)
-│   ├── test_paper_menu.py           # Тесты бумажного меню (3 теста)
-│   ├── test_performance.py          # Тесты производительности (3 теста)
-│   └── test_mobile.py               # Тесты мобильной версии (4 теста)
-├── drivers/
-│   └── chromedriver.exe             # ChromeDriver (устанавливается вручную)
-├── logs/                            # Логи тестов (создаётся автоматически)
-├── screenshots_fail/                # Скриншоты при падении (создаётся автоматически)
-├── allure-results/                  # Результаты для Allure
-├── screenshots/                     # Скриншоты для README
+│   ├── test_homepage.py         # Тесты главной страницы (5 тестов)
+│   ├── test_menu.py             # Тесты меню (5 тестов + параметризация)
+│   ├── test_mobile.py           # Тесты мобильной версии (4 теста)
+│   ├── test_negative.py         # Негативные тесты (7 тестов)
+│   ├── test_paper_menu.py       # Тесты бумажного меню (3 теста)
+│   ├── test_performance.py      # Тесты производительности (3 теста)
+│   ├── test_responsive.py       # Тесты адаптивности (9 тестов)
+│   └── test_smoke.py            # Дымовые и регрессионные тесты
+├── logs/                        # Логи тестов (создаётся автоматически)
+├── screenshots_fail/            # Скриншоты при падении (создаётся автоматически)
+├── allure-results/              # Результаты для Allure
+├── screenshots/                 # Скриншоты для README
 │   ├── allure_report_success.png
 │   └── allure_suites.png
 ├── requirements.txt
@@ -83,10 +92,11 @@ qa_pivnica/
 
 | Категория | Количество тестов |
 |-----------|-------------------|
-| UI-тесты (Selenium) | 32 |
+| UI-тесты (Selenium) | 34 |
 | API-тесты (requests) | 4 |
 | БД-тесты (sqlite3) | 6 |
-| **Всего** | **42** |
+| Адаптивные тесты | 9 |
+| **Всего** | **53** |
 
 ---
 
@@ -99,8 +109,9 @@ qa_pivnica/
 | `test_events_and_reservation.py` | Афиша и бронирование | Карточки, форма, поля, отправка | 5 |
 | `test_negative.py` | Бронирование | Пустая форма, невалидные данные | 7 |
 | `test_paper_menu.py` | Бумажное меню | Загрузка, изображения | 3 |
-| `test_performance.py` | Все страницы | Время загрузки | 3 |
+| `test_performance.py` | Все страницы | Время загрузки (< 5 сек) | 3 |
 | `test_mobile.py` | Все страницы | Мобильная версия, бургер-меню | 4 |
+| `test_smoke.py` | Все страницы | Дымовые тесты (быстрая проверка) | 5 |
 
 ---
 
@@ -168,7 +179,25 @@ cd ../qa_pivnica
 pytest -v
 ```
 
-### 6. Сгенерируйте отчёт Allure
+### 6. Запустите тесты параллельно (рекомендуется)
+
+```bash
+pytest -n auto -v
+```
+
+### 7. Запустите только дымовые тесты
+
+```bash
+pytest -m smoke -v
+```
+
+### 8. Запустите регрессионные тесты
+
+```bash
+pytest -m regression -v
+```
+
+### 9. Сгенерируйте отчёт Allure
 
 ```bash
 pytest --alluredir=allure-results
@@ -177,24 +206,42 @@ allure serve allure-results
 
 ---
 
+## 🔧 Маркеры для фильтрации тестов
+
+| Маркер | Описание |
+|--------|----------|
+| `@pytest.mark.smoke` | Дымовые тесты (быстрая проверка) |
+| `@pytest.mark.regression` | Регрессионные тесты |
+| `@pytest.mark.slow` | Медленные тесты (> 10 секунд) |
+
+**Использование:**
+```bash
+pytest -m smoke -v        # Только дымовые
+pytest -m regression -v   # Только регрессионные
+pytest -m "not slow" -v   # Все, кроме медленных
+```
+
+---
+
 ## 📊 Пример вывода тестов
 
 ```bash
-$ pytest -v
+$ pytest -n auto -v
 
-collected 42 items
+collected 53 items
 
-tests/test_api.py ....                                               [  9%]
-tests/test_database.py ......                                        [ 23%]
-tests/test_events_and_reservation.py .....                           [ 35%]
-tests/test_homepage.py .....                                         [ 47%]
-tests/test_menu.py ......                                            [ 61%]
-tests/test_mobile.py ....                                            [ 71%]
-tests/test_negative.py .......                                       [ 88%]
-tests/test_paper_menu.py ...                                         [ 95%]
-tests/test_performance.py ...                                        [100%]
+tests/test_api.py ....                                               [  7%]
+tests/test_database.py ......                                        [ 18%]
+tests/test_events_and_reservation.py .....                           [ 28%]
+tests/test_homepage.py .....                                         [ 37%]
+tests/test_menu.py ......                                            [ 48%]
+tests/test_mobile.py ....                                            [ 56%]
+tests/test_negative.py .......                                       [ 69%]
+tests/test_paper_menu.py ...                                         [ 75%]
+tests/test_performance.py ...                                        [ 81%]
+tests/test_responsive.py .........                                   [100%]
 
-=============================== 42 passed in 180.0s ===============================
+=============================== 53 passed in 65.0s ================================
 ```
 
 ## 📸 Пример отчёта Allure
@@ -216,7 +263,8 @@ tests/test_performance.py ...                                        [100%]
 | Фикстура | Назначение |
 |----------|------------|
 | `driver` | Создаёт и закрывает браузер для каждого теста |
-| `mobile_driver` | Создаёт браузер в режиме эмуляции мобильного устройства |
+| `driver_with_resolution` | Создаёт браузер с разными разрешениями (4 варианта) |
+| `fake` | Генерирует реалистичные тестовые данные (Faker) |
 | `api_base_url` | Базовый URL для API-тестов |
 | `db_connection` | Подключение к SQLite для проверки данных |
 
@@ -226,6 +274,7 @@ tests/test_performance.py ...                                        [100%]
 |---------|----------|
 | `setup_logging()` | Настройка логов в файл и консоль |
 | Скриншоты при падении | Автоматическое сохранение скриншота при ошибке |
+| Скриншоты в Allure | Скриншоты прикрепляются к Allure-отчёту |
 | Логи в файл | Все логи сохраняются в `logs/test_log_YYYYMMDD.log` |
 
 ### Обработка ошибок
@@ -234,6 +283,7 @@ tests/test_performance.py ...                                        [100%]
 - Fallback-селекторы для поиска элементов
 - Ожидание загрузки страниц (WebDriverWait)
 - Скриншоты при падении для отладки
+- Гибкий поиск цены (3 способа)
 
 ### Режим headless
 
@@ -242,6 +292,23 @@ tests/test_performance.py ...                                        [100%]
 
 ```python
 # options.add_argument("--headless")
+```
+
+---
+
+## 🔧 Маркеры для фильтрации тестов
+
+| Маркер | Описание |
+|--------|----------|
+| `@pytest.mark.smoke` | Дымовые тесты (быстрая проверка) |
+| `@pytest.mark.regression` | Регрессионные тесты |
+| `@pytest.mark.slow` | Медленные тесты (> 10 секунд) |
+
+**Использование:**
+```bash
+pytest -m smoke -v        # Только дымовые
+pytest -m regression -v   # Только регрессионные
+pytest -m "not slow" -v   # Все, кроме медленных
 ```
 
 ---
@@ -255,9 +322,13 @@ tests/test_performance.py ...                                        [100%]
 - [x] Добавить тесты производительности
 - [x] Добавить скриншоты при падении
 - [x] Добавить логирование в файл
-- [ ] Настроить параллельный запуск тестов (pytest-xdist)
+- [x] Добавить параллельный запуск (pytest-xdist)
+- [x] Добавить Faker для генерации данных
+- [x] Добавить тесты адаптивности
+- [x] Добавить дымовые и регрессионные тесты
 - [ ] Интегрировать с Allure TestOps
 - [ ] Расширить покрытие API-тестов
+- [ ] Добавить тесты для авторизации
 
 ---
 
